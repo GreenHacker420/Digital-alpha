@@ -5,6 +5,7 @@ from decimal import Decimal
 from sqlalchemy import Select, asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models import Transaction
 from app.query import SUCCESS_STATUSES, TransactionFilterSet
 
@@ -14,12 +15,13 @@ def _apply_filters(
     user_id: uuid.UUID,
     filters: TransactionFilterSet,
     *,
-    successful_only: bool = False,
+    spend_only: bool = False,
 ) -> Select:
     statement = statement.where(Transaction.user_id == user_id)
 
     if filters.q:
-        statement = statement.where(Transaction.merchant_name.ilike(f"%{filters.q.strip()}%"))
+        query = filters.q.strip().lower()
+        statement = statement.where(func.lower(Transaction.merchant_name).like(f"%{query}%"))
     if filters.category:
         statement = statement.where(Transaction.category == filters.category)
     if filters.status:
@@ -32,8 +34,12 @@ def _apply_filters(
         statement = statement.where(Transaction.amount >= filters.amount_min)
     if filters.amount_max is not None:
         statement = statement.where(Transaction.amount <= filters.amount_max)
-    if successful_only:
-        statement = statement.where(func.lower(Transaction.status).in_(SUCCESS_STATUSES))
+    if spend_only:
+        statement = statement.where(
+            func.lower(Transaction.status).in_(SUCCESS_STATUSES),
+            Transaction.amount > 0,
+            Transaction.is_anomaly.is_(False),
+        )
 
     return statement
 
@@ -54,6 +60,7 @@ async def list_transactions(
     sort_column = Transaction.amount if sort_by == "amount" else Transaction.occurred_at
     direction = asc if sort_direction == "asc" else desc
 
+    # Stable secondary ordering is required for deterministic OFFSET pagination.
     data_stmt = _apply_filters(select(Transaction), user_id, filters).order_by(
         direction(sort_column), direction(Transaction.id)
     )
@@ -65,7 +72,7 @@ async def list_transactions(
 
 
 async def get_transaction(
-    session: AsyncSession, user_id: uuid.UUID, transaction_id: str
+    session: AsyncSession, user_id: uuid.UUID, transaction_id: int
 ) -> Transaction | None:
     stmt = select(Transaction).where(
         Transaction.user_id == user_id,
@@ -120,7 +127,7 @@ async def spend_analytics(
     user_id: uuid.UUID,
     filters: TransactionFilterSet,
 ) -> dict:
-    base = _apply_filters(select(Transaction), user_id, filters, successful_only=True).subquery()
+    base = _apply_filters(select(Transaction), user_id, filters, spend_only=True).subquery()
 
     total_spend, successful_transactions = (
         await session.execute(
@@ -136,7 +143,7 @@ async def spend_analytics(
                 func.count().label("count"),
             )
             .group_by(base.c.category)
-            .order_by(desc("amount"))
+            .order_by(func.sum(base.c.amount).desc())
         )
     ).all()
 

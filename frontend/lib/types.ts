@@ -1,7 +1,8 @@
 export type Money = number | string;
 
 export type Transaction = {
-  id: string;
+  id: number;
+  source_id: string;
   merchant_name: string;
   category: string;
   amount: Money;
@@ -9,8 +10,8 @@ export type Transaction = {
   status: string;
   occurred_at: string;
   payment_method: string | null;
-  reference_id: string | null;
   description: string | null;
+  is_anomaly: boolean;
 };
 
 export type TransactionsPage = {

@@ -1,8 +1,8 @@
 import json
-import os
 import re
 import sys
 import uuid
+from collections import Counter
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation, ROUND_FLOOR
 from pathlib import Path
@@ -16,12 +16,12 @@ from app.models import Base, Reward, RewardLedgerEntry, Transaction, User
 DEMO_USER_ID = uuid.UUID(settings.demo_user_id)
 SUCCESS_STATUSES = {"success", "successful", "completed", "paid"}
 
-REWARDS = [
-    Reward(id="cashback-50", title="₹50 cashback", description="Cashback on your next successful card payment.", coin_cost=150, kind="cashback", value_label="₹50"),
-    Reward(id="coffee-100", title="Coffee voucher", description="A digital voucher for your next coffee run.", coin_cost=220, kind="voucher", value_label="₹100"),
-    Reward(id="movies-200", title="Movie voucher", description="Put your rewards toward your next movie night.", coin_cost=360, kind="voucher", value_label="₹200"),
-    Reward(id="cashback-150", title="₹150 cashback", description="A bigger statement credit for regular redeemers.", coin_cost=420, kind="cashback", value_label="₹150"),
-    Reward(id="shopping-300", title="Shopping voucher", description="Redeemable against a selected shopping partner.", coin_cost=650, kind="voucher", value_label="₹300"),
+REWARD_DEFINITIONS = [
+    {"id": "cashback-50", "title": "₹50 cashback", "description": "Cashback on your next successful card payment.", "coin_cost": 1500, "kind": "cashback", "value_label": "₹50"},
+    {"id": "coffee-100", "title": "Coffee voucher", "description": "A digital voucher for your next coffee run.", "coin_cost": 3000, "kind": "voucher", "value_label": "₹100"},
+    {"id": "movies-200", "title": "Movie voucher", "description": "Put your rewards toward your next movie night.", "coin_cost": 6500, "kind": "voucher", "value_label": "₹200"},
+    {"id": "cashback-500", "title": "₹500 cashback", "description": "A statement credit for regular redeemers.", "coin_cost": 10000, "kind": "cashback", "value_label": "₹500"},
+    {"id": "shopping-1000", "title": "Shopping voucher", "description": "Redeemable against a selected shopping partner.", "coin_cost": 18000, "kind": "voucher", "value_label": "₹1,000"},
 ]
 
 
@@ -47,50 +47,58 @@ def parse_amount(value) -> Decimal:
 
 
 def parse_datetime(value) -> datetime:
+    # The supplied data intentionally mixes ISO strings, date-only values,
+    # DD/MM/YYYY strings and Unix timestamps in milliseconds.
     if isinstance(value, datetime):
         parsed = value
     elif isinstance(value, (int, float)):
-        parsed = datetime.fromtimestamp(value, tz=timezone.utc)
+        seconds = value / 1000 if abs(value) > 10_000_000_000 else value
+        parsed = datetime.fromtimestamp(seconds, tz=timezone.utc)
     else:
         raw = str(value or "").strip()
         if not raw:
-            return datetime.now(timezone.utc)
-        raw = raw.replace("Z", "+00:00")
-        try:
-            parsed = datetime.fromisoformat(raw)
-        except ValueError:
-            parsed = datetime.strptime(raw[:10], "%Y-%m-%d")
+            raise ValueError("Transaction timestamp is empty")
+        if re.fullmatch(r"\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}", raw):
+            parsed = datetime.strptime(raw, "%d/%m/%Y %H:%M:%S")
+        else:
+            parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed
+    return parsed.astimezone(timezone.utc)
 
 
-def normalize_transaction(row: dict, index: int) -> Transaction:
-    source_id = first_value(row, "id", "transaction_id", "txn_id", "reference_id")
-    transaction_id = str(source_id or uuid.uuid5(uuid.NAMESPACE_URL, f"arcpay:{index}:{row}"))
-    merchant = first_value(row, "merchant_name", "merchant", "merchantName", "payee", "name")
-    category = first_value(row, "category", "spend_category", "merchant_category")
+def normalize_transaction(row: dict) -> Transaction:
+    source_id = str(first_value(row, "id", "transaction_id", "txn_id") or "unknown")[:80]
     amount = parse_amount(first_value(row, "amount", "transaction_amount", "value"))
-    status = str(first_value(row, "payment_status", "status", "transaction_status") or "unknown")
-    occurred_at = parse_datetime(first_value(row, "date", "occurred_at", "transaction_date", "created_at", "timestamp"))
+    merchant = first_value(row, "merchant", "merchant_name", "merchantName", "payee", "name")
+    category = first_value(row, "category", "spend_category", "merchant_category")
+    status = str(first_value(row, "status", "payment_status", "transaction_status") or "UNKNOWN").upper()
+    occurred_at = parse_datetime(first_value(row, "timestamp", "date", "occurred_at", "transaction_date", "created_at"))
+    payment_method = first_value(row, "payment_method", "method", "card")
+    description = first_value(row, "description", "note")
 
     return Transaction(
-        id=transaction_id[:80],
+        source_id=source_id,
         user_id=DEMO_USER_ID,
         merchant_name=str(merchant or "Unknown merchant")[:180],
-        category=str(category or "Other")[:80],
+        category=str(category).strip()[:80] if category and str(category).strip() else "Uncategorized",
         amount=amount,
         currency=str(first_value(row, "currency") or "INR").upper()[:3],
         status=status[:48],
         occurred_at=occurred_at,
-        payment_method=(str(first_value(row, "payment_method", "method", "card"))[:120] if first_value(row, "payment_method", "method", "card") else None),
-        reference_id=(str(first_value(row, "reference_id", "reference", "rrn"))[:120] if first_value(row, "reference_id", "reference", "rrn") else None),
-        description=(str(first_value(row, "description", "note")) if first_value(row, "description", "note") else None),
+        payment_method=str(payment_method)[:120] if payment_method else None,
+        description=str(description) if description else None,
+        is_anomaly=abs(amount) > Decimal(settings.analytics_outlier_limit),
     )
 
 
 def earned_coins(transaction: Transaction) -> int:
-    if transaction.status.lower() not in SUCCESS_STATUSES or transaction.amount <= 0:
+    if (
+        transaction.status.lower() not in SUCCESS_STATUSES
+        or transaction.amount <= 0
+        or transaction.is_anomaly
+    ):
         return 0
     raw = int((transaction.amount / Decimal("100")).to_integral_value(rounding=ROUND_FLOOR))
     return min(raw, settings.coin_cap_per_transaction)
@@ -112,13 +120,11 @@ def main() -> None:
     if not path.exists():
         raise SystemExit(f"Dataset not found: {path}")
 
-    sync_url = os.getenv(
-        "DATABASE_URL_SYNC",
-        "postgresql+psycopg://arcpay:arcpay@localhost:5432/arcpay",
-    )
-    engine = create_engine(sync_url, pool_pre_ping=True)
     rows = load_rows(path)
+    source_counts = Counter(str(row.get("id")) for row in rows)
+    duplicate_source_ids = sum(1 for count in source_counts.values() if count > 1)
 
+    engine = create_engine(settings.database_url_sync, pool_pre_ping=True)
     with engine.begin() as connection:
         connection.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
         Base.metadata.drop_all(connection)
@@ -127,10 +133,10 @@ def main() -> None:
 
     with Session(engine) as session:
         session.add(User(id=DEMO_USER_ID, display_name="Demo user"))
-        session.add_all(REWARDS)
+        session.add_all([Reward(**definition) for definition in REWARD_DEFINITIONS])
         session.flush()
 
-        transactions = [normalize_transaction(row, index) for index, row in enumerate(rows)]
+        transactions = [normalize_transaction(row) for row in rows]
         session.add_all(transactions)
         session.flush()
 
@@ -149,7 +155,12 @@ def main() -> None:
         session.add_all(credits)
         session.commit()
 
-    print(f"Seeded {len(transactions)} transactions, {len(credits)} earning entries, and {len(REWARDS)} rewards from {path}")
+    anomaly_count = sum(transaction.is_anomaly for transaction in transactions)
+    print(
+        f"Seeded {len(transactions)} source rows, {len(credits)} earning entries and "
+        f"{len(REWARD_DEFINITIONS)} rewards. Preserved {duplicate_source_ids} duplicate source IDs; "
+        f"flagged {anomaly_count} amount anomalies."
+    )
 
 
 if __name__ == "__main__":

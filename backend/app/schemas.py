@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 
 
 class TransactionOut(BaseModel):
-    id: str
+    id: int
+    source_id: str
     merchant_name: str
     category: str
     amount: Decimal
@@ -14,8 +15,8 @@ class TransactionOut(BaseModel):
     status: str
     occurred_at: datetime
     payment_method: str | None = None
-    reference_id: str | None = None
     description: str | None = None
+    is_anomaly: bool
 
     model_config = {"from_attributes": True}
 

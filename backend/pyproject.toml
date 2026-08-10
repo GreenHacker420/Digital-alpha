@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "arcpay-api"
 version = "0.1.0"
@@ -19,6 +23,9 @@ dev = [
   "httpx>=0.28,<1.0",
   "ruff>=0.12,<1.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["app*", "scripts*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Identity, Index, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -29,9 +29,13 @@ class Transaction(Base):
         Index("ix_transactions_user_amount", "user_id", "amount"),
         Index("ix_transactions_user_category", "user_id", "category"),
         Index("ix_transactions_user_status", "user_id", "status"),
+        Index("ix_transactions_user_source_id", "user_id", "source_id"),
     )
 
-    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    # The supplied dataset contains conflicting duplicate transaction IDs, so the
+    # database needs its own identity key while preserving the source identifier.
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    source_id: Mapped[str] = mapped_column(String(80), nullable=False)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     merchant_name: Mapped[str] = mapped_column(String(180), nullable=False)
     category: Mapped[str] = mapped_column(String(80), nullable=False)
@@ -40,8 +44,8 @@ class Transaction(Base):
     status: Mapped[str] = mapped_column(String(48), nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     payment_method: Mapped[str | None] = mapped_column(String(120))
-    reference_id: Mapped[str | None] = mapped_column(String(120))
     description: Mapped[str | None] = mapped_column(Text)
+    is_anomaly: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     user: Mapped[User] = relationship(back_populates="transactions")
 
@@ -69,7 +73,7 @@ class RewardLedgerEntry(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     delta: Mapped[int] = mapped_column(Integer, nullable=False)
     reason: Mapped[str] = mapped_column(String(40), nullable=False)
-    transaction_id: Mapped[str | None] = mapped_column(ForeignKey("transactions.id", ondelete="SET NULL"))
+    transaction_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("transactions.id", ondelete="SET NULL"))
     reward_id: Mapped[str | None] = mapped_column(ForeignKey("rewards.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

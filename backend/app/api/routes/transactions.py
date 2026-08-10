@@ -52,7 +52,7 @@ async def transaction_meta(
 
 @router.get("/transactions/{transaction_id}", response_model=TransactionOut)
 async def transaction_detail(
-    transaction_id: str,
+    transaction_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user_id: Annotated[uuid.UUID, Depends(get_demo_user_id)],
 ) -> TransactionOut:

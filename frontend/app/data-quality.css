@@ -1,0 +1,43 @@
+.table-scroll {
+  max-height: 610px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.amount-cell--credit strong {
+  color: var(--green);
+}
+
+.data-warning {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 7px;
+  border-radius: 50%;
+  color: #9a6411;
+  background: #fff2cf;
+  font: 700 10px/1 'DM Mono', monospace;
+  cursor: help;
+}
+
+.data-note {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #f1d58f;
+  border-radius: 11px;
+  background: #fff9e9;
+  color: #79520d;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.data-note strong { color: #624206; }
+.data-note--credit { border-color: #bce1d8; background: #f0faf7; color: #247363; }
+.data-note--credit strong { color: #175f51; }
+
+@media (max-width: 760px) {
+  .table-scroll { max-height: 560px; }
+}
