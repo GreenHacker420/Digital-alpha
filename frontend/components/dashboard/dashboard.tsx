@@ -4,11 +4,12 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { fetchAnalytics, fetchBalance, fetchTransactionMeta, fetchTransactions } from "@/lib/api";
+import { DEFAULT_SORT, EMPTY_FILTERS } from "@/lib/dashboard-defaults";
 import { queryKeys } from "@/lib/query-keys";
-import type { Filters, SortState, Transaction } from "@/lib/types";
+import type { Filters, Transaction } from "@/lib/types";
 import { formatCompactMoney } from "@/lib/format";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { emptyFilters, FilterBar } from "./filter-bar";
+import { FilterBar } from "./filter-bar";
 import { Rewards } from "./rewards";
 import { TransactionModal } from "./transaction-modal";
 import { TransactionsTable } from "./transactions-table";
@@ -27,9 +28,9 @@ const Analytics = dynamic(
 );
 
 export function Dashboard() {
-  const [filters, setFilters] = useState<Filters>(emptyFilters);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<SortState>({ by: "occurred_at", direction: "desc" });
+  const [sort, setSort] = useState(DEFAULT_SORT);
   const [selected, setSelected] = useState<Transaction | null>(null);
   const debouncedSearch = useDebouncedValue(filters.q, 250);
   const queryFilters: Filters = { ...filters, q: debouncedSearch };
@@ -144,7 +145,7 @@ export function Dashboard() {
             filters={filters}
             meta={meta.data}
             onChange={updateFilters}
-            onClear={() => updateFilters(emptyFilters)}
+            onClear={() => updateFilters(EMPTY_FILTERS)}
           />
           <TransactionsTable
             data={transactions.data}
