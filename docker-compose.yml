@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:18-alpine
+    image: postgres:18.4-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-arcpay}
       POSTGRES_USER: ${POSTGRES_USER:-arcpay}
