@@ -2,7 +2,21 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Identity, Index, Integer, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Identity,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -25,18 +39,43 @@ class User(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
     __table_args__ = (
-        Index("ix_transactions_user_occurred_at", "user_id", "occurred_at"),
-        Index("ix_transactions_user_amount", "user_id", "amount"),
-        Index("ix_transactions_user_category", "user_id", "category"),
-        Index("ix_transactions_user_status", "user_id", "status"),
+        # The trailing identity key matches the API's deterministic secondary sort,
+        # so date/amount pagination does not need a separate in-memory ordering step.
+        Index("ix_transactions_user_occurred_id", "user_id", "occurred_at", "id"),
+        Index("ix_transactions_user_amount_id", "user_id", "amount", "id"),
+        Index(
+            "ix_transactions_user_category_occurred",
+            "user_id",
+            "category",
+            "occurred_at",
+            "id",
+        ),
+        Index(
+            "ix_transactions_user_status_occurred",
+            "user_id",
+            "status",
+            "occurred_at",
+            "id",
+        ),
         Index("ix_transactions_user_source_id", "user_id", "source_id"),
+        Index(
+            "ix_transactions_user_valid_spend",
+            "user_id",
+            "occurred_at",
+            postgresql_where=text(
+                "status IN ('SUCCESS', 'SUCCESSFUL', 'COMPLETED', 'PAID') "
+                "AND amount > 0 AND is_anomaly = false"
+            ),
+        ),
     )
 
     # The supplied dataset contains conflicting duplicate transaction IDs, so the
     # database needs its own identity key while preserving the source identifier.
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     source_id: Mapped[str] = mapped_column(String(80), nullable=False)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     merchant_name: Mapped[str] = mapped_column(String(180), nullable=False)
     category: Mapped[str] = mapped_column(String(80), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
@@ -65,16 +104,31 @@ class Reward(Base):
 class RewardLedgerEntry(Base):
     __tablename__ = "reward_ledger"
     __table_args__ = (
-        UniqueConstraint("transaction_id", "reason", name="uq_reward_earning_per_transaction"),
+        UniqueConstraint(
+            "transaction_id",
+            "reason",
+            name="uq_reward_earning_per_transaction",
+        ),
         Index("ix_reward_ledger_user_created_at", "user_id", "created_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     delta: Mapped[int] = mapped_column(Integer, nullable=False)
     reason: Mapped[str] = mapped_column(String(40), nullable=False)
-    transaction_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("transactions.id", ondelete="SET NULL"))
-    reward_id: Mapped[str | None] = mapped_column(ForeignKey("rewards.id", ondelete="SET NULL"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    transaction_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("transactions.id", ondelete="SET NULL"),
+    )
+    reward_id: Mapped[str | None] = mapped_column(
+        ForeignKey("rewards.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     user: Mapped[User] = relationship(back_populates="reward_entries")
