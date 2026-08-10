@@ -1,4 +1,4 @@
-.PHONY: db seed api test web-install web
+.PHONY: db seed api test lint backend-check web-install web web-check check
 
 db:
 	docker compose up -d db
@@ -12,8 +12,18 @@ api:
 test:
 	cd backend && pytest -q
 
+lint:
+	cd backend && ruff check .
+
+backend-check: lint test
+
 web-install:
 	cd frontend && npm install
 
 web:
 	cd frontend && npm run dev
+
+web-check:
+	cd frontend && npm run check
+
+check: backend-check web-check
