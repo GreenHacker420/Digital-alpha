@@ -4,7 +4,8 @@ AI tools are explicitly permitted by the assignment. This file records where the
 
 ## Tools
 
-- ChatGPT — architecture review, implementation assistance, dataset profiling, edge-case review and documentation.
+- ChatGPT — architecture review, implementation assistance, dataset profiling, edge-case review, current dependency verification and documentation.
+- Web research — primary framework/package documentation was checked before the final dependency and optimization pass.
 - Additional AI tools used during local implementation should be appended here before submission.
 
 ## Where AI helped
@@ -13,6 +14,7 @@ AI tools are explicitly permitted by the assignment. This file records where the
 - Designing the React/API boundary for a data-heavy table.
 - Reviewing reward consistency and optimistic-update failure behaviour.
 - Profiling the supplied 10,000-row JSON and turning anomalies into explicit ingestion/product decisions.
+- Reviewing the August 2026 production stack and performance patterns before the final implementation pass.
 - Drafting first-pass implementation and reviewer-facing documentation.
 
 ## AI output rejected or corrected
@@ -32,6 +34,12 @@ A first parser covered ISO timestamps but the real file also contains `DD/MM/YYY
 ### 4. Rejected: mutable `coin_balance` column
 
 A single balance integer is easy to implement but weak for auditability and makes failed/duplicated writes harder to reason about. The implementation instead derives balance from an append-only ledger and performs redemption atomically. The frontend may optimistically display the debit, but rolls back and revalidates after failures.
+
+### 5. Corrected: blindly upgrade to TypeScript 7 because it is newest
+
+The initial dependency pass selected TypeScript 7.0.2 because it is the newest stable TypeScript release. A compatibility check against the stable Next.js 16.2 line showed that TS7 no longer exposes the JavaScript compiler API that Next 16.2 expects, so `next build` can fail even though `tsc` itself is installed. I reverted the project to TypeScript 6.0.3, the newest compatible stable line, rather than moving the application to a Next.js 16.3 preview just to keep the higher TypeScript version.
+
+This is a useful reminder that “latest” is not the same as “best production choice”; compatibility was treated as part of correctness.
 
 ## Ownership
 
