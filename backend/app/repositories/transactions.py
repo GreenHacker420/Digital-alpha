@@ -5,9 +5,12 @@ from decimal import Decimal
 from sqlalchemy import Select, asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.models import Transaction
 from app.query import SUCCESS_STATUSES, TransactionFilterSet
+
+
+def _escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def _apply_filters(
@@ -20,8 +23,10 @@ def _apply_filters(
     statement = statement.where(Transaction.user_id == user_id)
 
     if filters.q:
-        query = filters.q.strip().lower()
-        statement = statement.where(func.lower(Transaction.merchant_name).like(f"%{query}%"))
+        query = _escape_like(filters.q.strip().lower())
+        statement = statement.where(
+            func.lower(Transaction.merchant_name).like(f"%{query}%", escape="\\")
+        )
     if filters.category:
         statement = statement.where(Transaction.category == filters.category)
     if filters.status:
@@ -36,7 +41,7 @@ def _apply_filters(
         statement = statement.where(Transaction.amount <= filters.amount_max)
     if spend_only:
         statement = statement.where(
-            func.lower(Transaction.status).in_(SUCCESS_STATUSES),
+            Transaction.status.in_(SUCCESS_STATUSES),
             Transaction.amount > 0,
             Transaction.is_anomaly.is_(False),
         )
@@ -54,25 +59,41 @@ async def list_transactions(
     sort_by: str,
     sort_direction: str,
 ) -> tuple[list[Transaction], int, int]:
-    count_stmt = _apply_filters(select(func.count()).select_from(Transaction), user_id, filters)
-    total = int((await session.execute(count_stmt)).scalar_one())
-
     sort_column = Transaction.amount if sort_by == "amount" else Transaction.occurred_at
     direction = asc if sort_direction == "asc" else desc
 
-    # Stable secondary ordering is required for deterministic OFFSET pagination.
-    data_stmt = _apply_filters(select(Transaction), user_id, filters).order_by(
-        direction(sort_column), direction(Transaction.id)
-    )
+    # COUNT(*) OVER() gives the page rows and total result count in the same normal
+    # request. The fallback count only runs for an explicitly out-of-range page.
+    data_stmt = _apply_filters(
+        select(Transaction, func.count().over().label("total_count")),
+        user_id,
+        filters,
+    ).order_by(direction(sort_column), direction(Transaction.id))
     data_stmt = data_stmt.limit(page_size).offset((page - 1) * page_size)
-    items = list((await session.scalars(data_stmt)).all())
 
-    pages = max(1, math.ceil(total / page_size)) if total else 0
+    rows = (await session.execute(data_stmt)).all()
+    items = [row[0] for row in rows]
+
+    if rows:
+        total = int(rows[0]._mapping["total_count"])
+    elif page == 1:
+        total = 0
+    else:
+        count_stmt = _apply_filters(
+            select(func.count()).select_from(Transaction),
+            user_id,
+            filters,
+        )
+        total = int((await session.execute(count_stmt)).scalar_one())
+
+    pages = math.ceil(total / page_size) if total else 0
     return items, total, pages
 
 
 async def get_transaction(
-    session: AsyncSession, user_id: uuid.UUID, transaction_id: int
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    transaction_id: int,
 ) -> Transaction | None:
     stmt = select(Transaction).where(
         Transaction.user_id == user_id,
