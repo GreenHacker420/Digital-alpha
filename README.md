@@ -98,12 +98,13 @@ Frontend: `http://localhost:3000`
 Backend: `http://localhost:8000`  
 OpenAPI: `http://localhost:8000/docs`
 
-Run checks:
+Run the full local validation suite:
 
 ```bash
-make test
-cd frontend && npm run check
+make check
 ```
+
+This runs backend Ruff + tests, followed by frontend ESLint + TypeScript + a production Next.js build.
 
 ## Dataset observations
 
@@ -137,10 +138,11 @@ The supplied file is not perfectly clean, so ingestion intentionally handles the
 - Server hydration, request cancellation and chart code splitting
 - Current stable production dependency pass
 - Assumptions, decisions, data notes and AI usage documentation
+- GitHub Actions validation workflow for frontend and backend
 
 ### Still to do before sending
 
-- Run final install/build/test locally against PostgreSQL 18.4
+- Run `make check` locally against your machine/toolchain
 - Add the provided `transactions.json` locally and execute `make seed`
 - Deploy frontend + backend + hosted PostgreSQL
 - Add deployed URLs to this README
