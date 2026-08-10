@@ -9,9 +9,10 @@ import { Modal } from "@/components/ui/modal";
 
 export function Rewards() {
   const queryClient = useQueryClient();
-  const { data: balanceData } = useQuery({ queryKey: ["balance"], queryFn: fetchBalance });
-  const { data: rewards, isPending } = useQuery({ queryKey: ["rewards"], queryFn: fetchRewards });
+  const balanceQuery = useQuery({ queryKey: ["balance"], queryFn: fetchBalance });
+  const rewardsQuery = useQuery({ queryKey: ["rewards"], queryFn: fetchRewards });
   const [selected, setSelected] = useState<Reward | null>(null);
+  const [selectedBalance, setSelectedBalance] = useState(0);
   const [success, setSuccess] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -34,36 +35,28 @@ export function Rewards() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["balance"] }),
   });
 
-  const balance = balanceData?.balance ?? 0;
+  const balance = balanceQuery.data?.balance ?? 0;
+  const balanceReady = balanceQuery.isSuccess;
 
   return (
     <section className="rewards-section" id="rewards">
-      <div className="section-heading"><div><p className="eyebrow">Rewards</p><h2>Turn payments into something useful.</h2></div><div className="coin-balance"><span>◆</span><div><small>Available</small><strong>{balance.toLocaleString("en-IN")} coins</strong></div></div></div>
+      <div className="section-heading"><div><p className="eyebrow">Rewards</p><h2>Turn payments into something useful.</h2></div><div className="coin-balance"><span>◆</span><div><small>Available</small><strong>{balanceQuery.isError ? "Unavailable" : `${balance.toLocaleString("en-IN")} coins`}</strong></div></div></div>
 
-      <div className="rewards-strip">
-        {isPending ? Array.from({ length: 4 }, (_, i) => <div key={i} className="reward-card reward-card--skeleton" />) : rewards?.map((reward) => {
-          const affordable = balance >= reward.coin_cost;
-          return (
-            <article className="reward-card" key={reward.id}>
-              <div className="reward-card__top"><span className="reward-glyph">{reward.kind === "cashback" ? "₹" : "✦"}</span><span className="reward-cost">◆ {reward.coin_cost}</span></div>
-              <div><small>{reward.value_label}</small><h3>{reward.title}</h3><p>{reward.description}</p></div>
-              <Button variant={affordable ? "primary" : "secondary"} disabled={!affordable || mutation.isPending} onClick={() => setSelected(reward)}>{affordable ? "Redeem" : `Need ${reward.coin_cost - balance} more`}</Button>
-            </article>
-          );
-        })}
-      </div>
+      {rewardsQuery.isError ? <div className="rewards-error" role="alert"><strong>Rewards catalogue couldn’t load.</strong><span>Your transaction data is unaffected. Check the API and retry.</span></div> : (
+        <div className="rewards-strip">
+          {rewardsQuery.isPending ? Array.from({ length: 4 }, (_, i) => <div key={i} className="reward-card reward-card--skeleton" />) : rewardsQuery.data?.map((reward) => {
+            const affordable = balanceReady && balance >= reward.coin_cost;
+            const label = !balanceReady ? "Checking balance…" : affordable ? "Redeem" : `Need ${reward.coin_cost - balance} more`;
+            return (
+              <article className="reward-card" key={reward.id}><div className="reward-card__top"><span className="reward-glyph">{reward.kind === "cashback" ? "₹" : "✦"}</span><span className="reward-cost">◆ {reward.coin_cost}</span></div><div><small>{reward.value_label}</small><h3>{reward.title}</h3><p>{reward.description}</p></div><Button variant={affordable ? "primary" : "secondary"} disabled={!affordable || mutation.isPending} onClick={() => { setSelected(reward); setSelectedBalance(balance); }}>{label}</Button></article>
+            );
+          })}
+        </div>
+      )}
 
       {success ? <div className="toast" role="status"><span>✓</span>{success}</div> : null}
-
       <Modal open={Boolean(selected)} onClose={() => !mutation.isPending && setSelected(null)} title="Confirm redemption">
-        {selected ? (
-          <div className="confirm-redeem">
-            <div className="confirm-redeem__reward"><span className="reward-glyph">{selected.kind === "cashback" ? "₹" : "✦"}</span><div><strong>{selected.title}</strong><span>{selected.description}</span></div></div>
-            <div className="balance-preview"><span>Current balance <strong>{balance.toLocaleString("en-IN")}</strong></span><span>Reward cost <strong>−{selected.coin_cost.toLocaleString("en-IN")}</strong></span><hr/><span>After redeem <strong>{Math.max(0, balance - selected.coin_cost).toLocaleString("en-IN")}</strong></span></div>
-            {mutation.isError ? <p className="inline-error" role="alert">Redemption failed. Your coin balance has been restored; please try again.</p> : null}
-            <div className="modal-actions"><Button variant="secondary" onClick={() => setSelected(null)} disabled={mutation.isPending}>Cancel</Button><Button onClick={() => mutation.mutate(selected)} disabled={mutation.isPending}>{mutation.isPending ? "Redeeming…" : `Redeem for ${selected.coin_cost} coins`}</Button></div>
-          </div>
-        ) : null}
+        {selected ? <div className="confirm-redeem"><div className="confirm-redeem__reward"><span className="reward-glyph">{selected.kind === "cashback" ? "₹" : "✦"}</span><div><strong>{selected.title}</strong><span>{selected.description}</span></div></div><div className="balance-preview"><span>Current balance <strong>{selectedBalance.toLocaleString("en-IN")}</strong></span><span>Reward cost <strong>−{selected.coin_cost.toLocaleString("en-IN")}</strong></span><hr/><span>After redeem <strong>{Math.max(0, selectedBalance - selected.coin_cost).toLocaleString("en-IN")}</strong></span></div>{mutation.isError ? <p className="inline-error" role="alert">Redemption failed. Your coin balance has been restored; please try again.</p> : null}<div className="modal-actions"><Button variant="secondary" onClick={() => setSelected(null)} disabled={mutation.isPending}>Cancel</Button><Button onClick={() => mutation.mutate(selected)} disabled={mutation.isPending}>{mutation.isPending ? "Redeeming…" : `Redeem for ${selected.coin_cost} coins`}</Button></div></div> : null}
       </Modal>
     </section>
   );
