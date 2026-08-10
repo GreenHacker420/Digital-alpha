@@ -18,13 +18,29 @@ export class ApiError extends Error {
     public detail?: unknown,
   ) {
     super(message);
+    this.name = "ApiError";
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+function readErrorMessage(status: number, detail: unknown) {
+  if (typeof detail === "object" && detail !== null && "detail" in detail) {
+    const value = (detail as { detail?: unknown }).detail;
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  return `Request failed with ${status}`;
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers);
+  headers.set("Accept", "application/json");
+  if (init.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    headers,
+    cache: "no-store",
   });
 
   if (!response.ok) {
@@ -34,26 +50,28 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       detail = undefined;
     }
-    throw new ApiError(`Request failed with ${response.status}`, response.status, detail);
+    throw new ApiError(readErrorMessage(response.status, detail), response.status, detail);
   }
 
   return response.json() as Promise<T>;
 }
 
 function addFilters(params: URLSearchParams, filters: Filters) {
-  if (filters.q.trim()) params.set("q", filters.q.trim());
+  const search = filters.q.trim();
+  if (search) params.set("q", search);
   if (filters.category) params.set("category", filters.category);
   if (filters.status) params.set("status", filters.status);
   if (filters.dateFrom) params.set("date_from", `${filters.dateFrom}T00:00:00Z`);
-  if (filters.dateTo) params.set("date_to", `${filters.dateTo}T23:59:59Z`);
-  if (filters.amountMin) params.set("amount_min", filters.amountMin);
-  if (filters.amountMax) params.set("amount_max", filters.amountMax);
+  if (filters.dateTo) params.set("date_to", `${filters.dateTo}T23:59:59.999Z`);
+  if (filters.amountMin.trim()) params.set("amount_min", filters.amountMin.trim());
+  if (filters.amountMax.trim()) params.set("amount_max", filters.amountMax.trim());
 }
 
 export async function fetchTransactions(
   filters: Filters,
   page: number,
   sort: SortState,
+  signal?: AbortSignal,
 ): Promise<TransactionsPage> {
   const params = new URLSearchParams({
     page: String(page),
@@ -62,20 +80,24 @@ export async function fetchTransactions(
     sort_direction: sort.direction,
   });
   addFilters(params, filters);
-  return request(`/transactions?${params}`);
+  return request(`/transactions?${params}`, { signal });
 }
 
-export const fetchTransactionMeta = () => request<TransactionMeta>("/transactions/meta");
+export const fetchTransactionMeta = (signal?: AbortSignal) =>
+  request<TransactionMeta>("/transactions/meta", { signal });
 
-export async function fetchAnalytics(filters: Filters): Promise<SpendAnalytics> {
+export async function fetchAnalytics(filters: Filters, signal?: AbortSignal): Promise<SpendAnalytics> {
   const params = new URLSearchParams();
   addFilters(params, filters);
   const suffix = params.size ? `?${params}` : "";
-  return request(`/analytics/spend${suffix}`);
+  return request(`/analytics/spend${suffix}`, { signal });
 }
 
-export const fetchBalance = () => request<CoinBalance>("/rewards/balance");
-export const fetchRewards = () => request<Reward[]>("/rewards/catalog");
+export const fetchBalance = (signal?: AbortSignal) =>
+  request<CoinBalance>("/rewards/balance", { signal });
+
+export const fetchRewards = (signal?: AbortSignal) =>
+  request<Reward[]>("/rewards/catalog", { signal });
 
 export const redeemReward = (rewardId: string) =>
   request<RedeemResponse>("/rewards/redeem", {
