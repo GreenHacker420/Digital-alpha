@@ -1,6 +1,22 @@
 import type { Filters, TransactionMeta } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+    </svg>
+  );
+}
+
+function SlidersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h10m4 0h2M14 7a2 2 0 1 0 4 0 2 2 0 0 0-4 0ZM4 17h2m4 0h10M6 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z" />
+    </svg>
+  );
+}
+
 export function FilterBar({
   filters,
   meta,
@@ -19,20 +35,20 @@ export function FilterBar({
   return (
     <div className="filters" aria-label="Transaction filters">
       <label className="field field--search">
-        <span>Merchant</span>
+        <span>Merchant search</span>
         <div className="search-input-wrap">
-          <span aria-hidden="true">⌕</span>
+          <SearchIcon />
           <input
             value={filters.q}
             onChange={(event) => update("q", event.target.value)}
-            placeholder="Search merchant"
+            placeholder="Search 10,000 transactions"
             autoComplete="off"
             spellCheck={false}
           />
         </div>
       </label>
 
-      <label className="field">
+      <label className="field field--select">
         <span>Category</span>
         <select
           value={filters.category}
@@ -47,7 +63,7 @@ export function FilterBar({
         </select>
       </label>
 
-      <label className="field">
+      <label className="field field--select">
         <span>Status</span>
         <select
           value={filters.status}
@@ -64,7 +80,9 @@ export function FilterBar({
 
       <details className="more-filters">
         <summary>
-          More filters {activeCount > 3 ? <b>{activeCount - 3}</b> : null}
+          <SlidersIcon />
+          <span>More</span>
+          {activeCount > 3 ? <b>{activeCount - 3}</b> : null}
         </summary>
         <div className="more-filters__panel">
           <label className="field">
@@ -84,7 +102,7 @@ export function FilterBar({
             />
           </label>
           <label className="field">
-            <span>Min amount</span>
+            <span>Minimum amount</span>
             <input
               inputMode="decimal"
               type="number"
@@ -94,7 +112,7 @@ export function FilterBar({
             />
           </label>
           <label className="field">
-            <span>Max amount</span>
+            <span>Maximum amount</span>
             <input
               inputMode="decimal"
               type="number"
@@ -107,7 +125,7 @@ export function FilterBar({
       </details>
 
       {activeCount > 0 ? (
-        <Button variant="ghost" onClick={onClear}>
+        <Button variant="ghost" className="filters__clear" onClick={onClear}>
           Clear {activeCount}
         </Button>
       ) : null}
