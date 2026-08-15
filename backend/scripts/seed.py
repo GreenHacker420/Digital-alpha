@@ -153,9 +153,9 @@ def main() -> None:
                     )
                 )
         session.add_all(credits)
+        anomaly_count = sum(transaction.is_anomaly for transaction in transactions)
         session.commit()
 
-    anomaly_count = sum(transaction.is_anomaly for transaction in transactions)
     print(
         f"Seeded {len(transactions)} source rows, {len(credits)} earning entries and "
         f"{len(REWARD_DEFINITIONS)} rewards. Preserved {duplicate_source_ids} duplicate source IDs; "

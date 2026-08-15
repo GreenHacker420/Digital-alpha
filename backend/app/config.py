@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     db_pool_timeout_seconds: int = 5
     db_pool_recycle_seconds: int = 1800
 
-    model_config = SettingsConfigDict(env_file="../.env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=("../.env", ".env"), extra="ignore")
 
     @property
     def cors_origin_list(self) -> list[str]:
