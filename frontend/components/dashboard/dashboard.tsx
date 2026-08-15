@@ -57,24 +57,59 @@ export function Dashboard() {
   const queryFilters: Filters = { ...filters, q: debouncedSearch };
 
   useEffect(() => {
-    const sections = (["overview", "transactions", "rewards"] as const)
+    const sectionIds: SectionId[] = ["overview", "transactions", "rewards"];
+    const sections = sectionIds
       .map((id) => document.getElementById(id))
       .filter((section): section is HTMLElement => Boolean(section));
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible && ["overview", "transactions", "rewards"].includes(visible.target.id)) {
-          setActiveSection(visible.target.id as SectionId);
-        }
-      },
-      { rootMargin: "-16% 0px -68% 0px", threshold: [0, 0.12, 0.3] },
-    );
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-    sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
+    const syncActiveSection = () => {
+      const documentElement = document.documentElement;
+      const atPageBottom =
+        window.scrollY + window.innerHeight >= documentElement.scrollHeight - 8;
+
+      // The final section cannot always travel far enough up the viewport to
+      // cross a conventional scroll-spy threshold. At the document end the
+      // user's intent is unambiguously the Rewards section.
+      if (atPageBottom) {
+        setActiveSection("rewards");
+        return;
+      }
+
+      // A fluid viewport anchor makes the active state feel natural across
+      // desktop and mobile instead of depending on one fixed pixel offset.
+      const activationLine = window.innerHeight * 0.4;
+      let nextSection: SectionId = "overview";
+
+      for (const section of sections) {
+        if (section.getBoundingClientRect().top <= activationLine) {
+          nextSection = section.id as SectionId;
+        } else {
+          break;
+        }
+      }
+
+      setActiveSection((current) => current === nextSection ? current : nextSection);
+    };
+
+    const scheduleSync = () => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = undefined;
+        syncActiveSection();
+      }, 40);
+    };
+
+    syncActiveSection();
+    document.addEventListener("scroll", scheduleSync, { passive: true });
+    window.addEventListener("resize", scheduleSync);
+
+    return () => {
+      document.removeEventListener("scroll", scheduleSync);
+      window.removeEventListener("resize", scheduleSync);
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   const transactions = useQuery({
