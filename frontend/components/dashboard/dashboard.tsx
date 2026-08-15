@@ -2,7 +2,7 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchAnalytics, fetchBalance, fetchTransactionMeta, fetchTransactions } from "@/lib/api";
 import { DEFAULT_SORT, EMPTY_FILTERS } from "@/lib/dashboard-defaults";
 import { queryKeys } from "@/lib/query-keys";
@@ -54,18 +54,18 @@ function RewardsIcon() {
   );
 }
 
-function RailNav() {
+function RailNav({ activeSection }: { activeSection: "overview" | "transactions" | "rewards" }) {
   return (
     <nav className="rail-nav" aria-label="Primary navigation">
-      <a className="active" href="#top">
+      <a className={activeSection === "overview" ? "active" : ""} href="#overview">
         <OverviewIcon />
         <span>Overview</span>
       </a>
-      <a href="#transactions">
+      <a className={activeSection === "transactions" ? "active" : ""} href="#transactions">
         <TransactionsIcon />
         <span>Transactions</span>
       </a>
-      <a href="#rewards">
+      <a className={activeSection === "rewards" ? "active" : ""} href="#rewards">
         <RewardsIcon />
         <span>Rewards</span>
       </a>
@@ -78,8 +78,30 @@ export function Dashboard() {
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState(DEFAULT_SORT);
   const [selected, setSelected] = useState<Transaction | null>(null);
+  const [activeSection, setActiveSection] = useState<"overview" | "transactions" | "rewards">("overview");
   const debouncedSearch = useDebouncedValue(filters.q, 250);
   const queryFilters: Filters = { ...filters, q: debouncedSearch };
+
+  useEffect(() => {
+    const sections = ["overview", "transactions", "rewards"]
+      .map((id) => document.getElementById(id))
+      .filter((section): section is HTMLElement => Boolean(section));
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible?.target.id === "overview" || visible?.target.id === "transactions" || visible?.target.id === "rewards") {
+          setActiveSection(visible.target.id);
+        }
+      },
+      { rootMargin: "-18% 0px -62% 0px", threshold: [0, 0.1, 0.3] },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
 
   const transactions = useQuery({
     queryKey: queryKeys.transactions(queryFilters, page, sort),
@@ -118,11 +140,12 @@ export function Dashboard() {
 
   const matchingTransactions = transactions.data?.total.toLocaleString("en-IN") ?? "—";
   const successfulTransactions = analytics.data?.successful_transactions.toLocaleString("en-IN") ?? "—";
+  const categoryCount = analytics.data?.categories.length.toLocaleString("en-IN") ?? "—";
 
   return (
     <main className="app-shell">
       <aside className="app-rail">
-        <a className="rail-brand" href="#top" aria-label="ArcPay home">
+        <a className="rail-brand" href="#overview" aria-label="ArcPay home">
           <span className="brand-mark">A</span>
           <span>
             <strong>ArcPay</strong>
@@ -130,7 +153,7 @@ export function Dashboard() {
           </span>
         </a>
 
-        <RailNav />
+        <RailNav activeSection={activeSection} />
 
         <div className="rail-status">
           <div className="rail-status__pulse"><i /> Connected</div>
@@ -150,7 +173,7 @@ export function Dashboard() {
       <div className="workspace">
         <header className="workspace-topbar">
           <div>
-            <span className="workspace-breadcrumb">Workspace / Overview</span>
+            <span className="workspace-breadcrumb">Workspace / {activeSection[0].toUpperCase() + activeSection.slice(1)}</span>
             <h1>Spending overview</h1>
           </div>
           <div className="workspace-actions">
@@ -162,8 +185,8 @@ export function Dashboard() {
           </div>
         </header>
 
-        <div className="workspace-content" id="top">
-          <section className="overview-section" aria-label="Account summary">
+        <div className="workspace-content">
+          <section className="overview-section" id="overview" aria-label="Account summary">
             <article className="spend-overview-card">
               <div className="ambient-grid" aria-hidden="true" />
               <div className="spend-overview-card__head">
@@ -177,7 +200,7 @@ export function Dashboard() {
               <div className="spend-overview-card__meta">
                 <span><b>{successfulTransactions}</b> successful</span>
                 <span><b>{matchingTransactions}</b> matching records</span>
-                <span><b>11</b> spend categories</span>
+                <span><b>{categoryCount}</b> spend categories</span>
               </div>
             </article>
 
@@ -269,7 +292,7 @@ export function Dashboard() {
       </div>
 
       <div className="mobile-dock">
-        <RailNav />
+        <RailNav activeSection={activeSection} />
       </div>
 
       <TransactionModal transaction={selected} onClose={() => setSelected(null)} />
