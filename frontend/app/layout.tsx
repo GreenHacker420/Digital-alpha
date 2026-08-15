@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./data-quality.css";
 import "./polish.css";
+import "./current-shell.css";
 import { QueryProvider } from "@/components/query-provider";
 
 export const metadata: Metadata = {
