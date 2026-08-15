@@ -1,29 +1,39 @@
 "use client";
 
-import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import type { SpendAnalytics } from "@/lib/types";
 import { formatCompactMoney, formatMoney } from "@/lib/format";
 
 const CATEGORY_COLORS = [
-  "#83d4ad",
-  "#d8ad62",
-  "#a798ef",
-  "#e58484",
-  "#79b5d3",
-  "#bdc88d",
-  "#d09bbe",
-  "#8fa19a",
-  "#f0c67c",
-  "#65b89d",
-  "#aaa3d3",
+  "#96a99e",
+  "#c6a56a",
+  "#7f8fca",
+  "#ba7778",
+  "#6596a7",
+  "#9ca473",
+  "#9d8193",
+  "#7e8983",
+  "#ceb77a",
+  "#6b9c89",
+  "#9a95b2",
 ];
 
 const tooltipStyle = {
-  border: "1px solid rgba(17, 25, 22, 0.1)",
-  borderRadius: "14px",
-  boxShadow: "0 18px 45px rgba(17, 25, 22, 0.12)",
-  background: "rgba(255,255,252,.97)",
-  color: "#17201b",
+  border: "1px solid rgba(15, 20, 18, 0.1)",
+  borderRadius: "12px",
+  boxShadow: "0 18px 48px rgba(15, 20, 18, 0.14)",
+  background: "rgba(255,255,253,.98)",
+  color: "#111714",
   fontSize: "12px",
 };
 
@@ -62,7 +72,7 @@ export function Analytics({
     ...item,
     amount: Number(item.amount),
     fill: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
-    fillOpacity: activeCategory && activeCategory !== item.category ? 0.24 : 1,
+    fillOpacity: activeCategory && activeCategory !== item.category ? 0.18 : 1,
   }));
 
   const monthly = data.monthly.map((item) => ({
@@ -74,15 +84,74 @@ export function Analytics({
     }),
   }));
 
+  const largestCategory = categories[0];
+
   return (
     <div className="analytics-grid">
+      <section className="chart-panel chart-panel--trend">
+        <div className="panel-heading">
+          <div>
+            <span className="panel-kicker">Monthly movement</span>
+            <h3>Spend trajectory</h3>
+          </div>
+          <div className="chart-value-block">
+            <span>Total eligible spend</span>
+            <strong>{formatMoney(data.total_spend)}</strong>
+          </div>
+        </div>
+
+        <div className="trend-summary-row">
+          <span className="success-count"><i /> {data.successful_transactions.toLocaleString("en-IN")} successful</span>
+          <span>13-month view</span>
+        </div>
+
+        <div className="chart-canvas chart-canvas--trend">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={monthly} margin={{ top: 18, right: 4, bottom: 0, left: 4 }}>
+              <defs>
+                <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#354a40" stopOpacity={0.24} />
+                  <stop offset="68%" stopColor="#354a40" stopOpacity={0.05} />
+                  <stop offset="100%" stopColor="#354a40" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} stroke="rgba(17,23,20,.07)" strokeDasharray="4 6" />
+              <XAxis
+                dataKey="label"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#7c847f", fontSize: 11 }}
+                minTickGap={24}
+                tickMargin={12}
+              />
+              <YAxis hide domain={["dataMin - 1000", "dataMax + 1000"]} />
+              <Tooltip
+                cursor={{ stroke: "rgba(17,23,20,.18)", strokeDasharray: "4 4" }}
+                contentStyle={tooltipStyle}
+                formatter={(value) => formatMoney(Number(value))}
+              />
+              <Area
+                type="monotone"
+                dataKey="amount"
+                stroke="#354a40"
+                strokeWidth={2.2}
+                fill="url(#spendGradient)"
+                activeDot={{ r: 4.5, fill: "#111714", stroke: "#f6f7f3", strokeWidth: 3 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
       <section className="chart-panel chart-panel--category">
         <div className="panel-heading">
           <div>
-            <span className="panel-kicker">Category distribution</span>
-            <h3>Where the spend landed</h3>
+            <span className="panel-kicker">Category mix</span>
+            <h3>Spend concentration</h3>
           </div>
-          <strong>{formatMoney(data.total_spend)}</strong>
+          {activeCategory ? (
+            <button className="chart-reset" onClick={() => onCategory(activeCategory)}>Clear filter</button>
+          ) : null}
         </div>
 
         <div className="donut-layout">
@@ -94,9 +163,10 @@ export function Analytics({
                     data={categories}
                     dataKey="amount"
                     nameKey="category"
-                    innerRadius="61%"
-                    outerRadius="86%"
-                    paddingAngle={2}
+                    innerRadius="67%"
+                    outerRadius="89%"
+                    paddingAngle={1.5}
+                    cornerRadius={3}
                     stroke="none"
                     onClick={(entry) => {
                       const category = String(
@@ -118,55 +188,25 @@ export function Analytics({
             </div>
           </div>
 
-          <div className="legend-list" aria-label="Spend categories">
-            {categories.slice(0, 7).map((item, index) => (
-              <button
-                key={item.category}
-                onClick={() => onCategory(item.category)}
-                className={activeCategory === item.category ? "active" : ""}
-              >
-                <i style={{ background: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }} />
-                <span>{item.category}</span>
-                <strong>{formatCompactMoney(item.amount)}</strong>
-              </button>
-            ))}
+          <div className="category-insight">
+            <span>Largest category</span>
+            <strong>{largestCategory?.category ?? "—"}</strong>
+            <p>{largestCategory ? formatCompactMoney(largestCategory.amount) : "—"} in eligible spend</p>
           </div>
         </div>
 
-        <p className="chart-hint">Select any category to filter the ledger below.</p>
-      </section>
-
-      <section className="chart-panel chart-panel--trend">
-        <div className="panel-heading">
-          <div>
-            <span className="panel-kicker">Monthly movement</span>
-            <h3>Spend over time</h3>
-          </div>
-          <span className="success-count">
-            <i aria-hidden="true" />
-            {data.successful_transactions.toLocaleString("en-IN")} successful
-          </span>
-        </div>
-
-        <div className="chart-canvas chart-canvas--trend">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={monthly} margin={{ top: 18, right: 4, bottom: 0, left: 4 }}>
-              <XAxis
-                dataKey="label"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#747d77", fontSize: 11 }}
-                minTickGap={24}
-              />
-              <YAxis hide />
-              <Tooltip
-                cursor={{ fill: "rgba(35, 100, 76, .055)" }}
-                contentStyle={tooltipStyle}
-                formatter={(value) => formatMoney(Number(value))}
-              />
-              <Bar dataKey="amount" fill="#286c52" radius={[7, 7, 2, 2]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="legend-list" aria-label="Spend categories">
+          {categories.slice(0, 6).map((item, index) => (
+            <button
+              key={item.category}
+              onClick={() => onCategory(item.category)}
+              className={activeCategory === item.category ? "active" : ""}
+            >
+              <i style={{ background: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }} />
+              <span>{item.category}</span>
+              <strong>{formatCompactMoney(item.amount)}</strong>
+            </button>
+          ))}
         </div>
       </section>
     </div>
