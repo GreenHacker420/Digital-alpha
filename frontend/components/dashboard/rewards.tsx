@@ -7,6 +7,7 @@ import { queryKeys } from "@/lib/query-keys";
 import type { CoinBalance, Reward } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
 
 export function Rewards() {
   const queryClient = useQueryClient();
@@ -57,16 +58,17 @@ export function Rewards() {
   const balanceReady = balanceQuery.isSuccess;
 
   return (
-    <section className="rewards-section" id="rewards">
-      <div className="section-heading">
+    <section className="rewards-section" id="rewards" aria-labelledby="rewards-title">
+      <div className="section-heading rewards-heading">
         <div>
           <p className="eyebrow">Rewards</p>
-          <h2>Turn payments into something useful.</h2>
+          <h2 id="rewards-title">Spend value you already earned.</h2>
+          <p className="section-copy">Redeem directly against the immutable coin ledger. Failed redemptions roll back cleanly.</p>
         </div>
         <div className="coin-balance">
-          <span>◆</span>
+          <span className="coin-mark" aria-hidden="true">◆</span>
           <div>
-            <small>Available</small>
+            <small>Available balance</small>
             <strong>
               {balanceQuery.isError ? "Unavailable" : `${balance.toLocaleString("en-IN")} coins`}
             </strong>
@@ -80,30 +82,42 @@ export function Rewards() {
           <span>Your transaction data is unaffected. Check the API and retry.</span>
         </div>
       ) : (
-        <div className="rewards-strip">
+        <div className="rewards-grid">
           {rewardsQuery.isPending
-            ? Array.from({ length: 4 }, (_, index) => (
+            ? Array.from({ length: 5 }, (_, index) => (
                 <div key={index} className="reward-card reward-card--skeleton" />
               ))
-            : rewardsQuery.data?.map((reward) => {
+            : rewardsQuery.data?.map((reward, index) => {
                 const affordable = balanceReady && balance >= reward.coin_cost;
                 const label = !balanceReady
                   ? "Checking balance…"
                   : affordable
-                    ? "Redeem"
-                    : `Need ${reward.coin_cost - balance} more`;
+                    ? "Redeem reward"
+                    : `Need ${(reward.coin_cost - balance).toLocaleString("en-IN")} more`;
 
                 return (
-                  <article className="reward-card" key={reward.id}>
+                  <SpotlightCard
+                    className={`reward-card ${index === 0 ? "reward-card--featured" : ""}`}
+                    key={reward.id}
+                    role="article"
+                    aria-labelledby={`reward-${reward.id}`}
+                  >
                     <div className="reward-card__top">
-                      <span className="reward-glyph">{reward.kind === "cashback" ? "₹" : "✦"}</span>
-                      <span className="reward-cost">◆ {reward.coin_cost}</span>
+                      <span className="reward-glyph" aria-hidden="true">
+                        {reward.kind === "cashback" ? "₹" : "✦"}
+                      </span>
+                      <span className="reward-cost">
+                        <i aria-hidden="true">◆</i>
+                        {reward.coin_cost.toLocaleString("en-IN")}
+                      </span>
                     </div>
-                    <div>
+
+                    <div className="reward-card__body">
                       <small>{reward.value_label}</small>
-                      <h3>{reward.title}</h3>
+                      <h3 id={`reward-${reward.id}`}>{reward.title}</h3>
                       <p>{reward.description}</p>
                     </div>
+
                     <Button
                       variant={affordable ? "primary" : "secondary"}
                       disabled={!affordable || mutation.isPending}
@@ -115,7 +129,7 @@ export function Rewards() {
                     >
                       {label}
                     </Button>
-                  </article>
+                  </SpotlightCard>
                 );
               })}
         </div>
@@ -167,7 +181,7 @@ export function Rewards() {
                 Cancel
               </Button>
               <Button onClick={() => mutation.mutate(selected)} disabled={mutation.isPending}>
-                {mutation.isPending ? "Redeeming…" : `Redeem for ${selected.coin_cost} coins`}
+                {mutation.isPending ? "Redeeming…" : `Redeem for ${selected.coin_cost.toLocaleString("en-IN")} coins`}
               </Button>
             </div>
           </div>
