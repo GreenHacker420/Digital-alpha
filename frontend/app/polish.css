@@ -1,0 +1,488 @@
+/* Final visual polish: restrained consumer-finance palette + responsive fixes.
+   Imported after globals.css so this file intentionally owns the final cascade. */
+
+:root {
+  --canvas: #f6f5f2;
+  --canvas-deep: #efede8;
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  --surface-soft: #faf9f7;
+  --ink: #1a1b1e;
+  --ink-strong: #0d0e10;
+  --muted: #6e7077;
+  --muted-2: #9a9ca2;
+  --line: rgba(20, 20, 22, 0.09);
+  --line-strong: rgba(20, 20, 22, 0.16);
+  --accent: #d85c3d;
+  --accent-strong: #b94328;
+  --accent-soft: #fae9e3;
+  --accent-pale: #fff5f1;
+  --forest: #167f70;
+  --forest-strong: #12665b;
+  --forest-pale: #eaf5f2;
+  --gold: #b68122;
+  --gold-soft: #fbf1dd;
+  --rose: #c4485a;
+  --rose-soft: #fbecef;
+  --shadow-sm: 0 1px 2px rgba(18, 18, 20, 0.025), 0 10px 28px rgba(18, 18, 20, 0.035);
+  --shadow-md: 0 24px 72px rgba(18, 18, 20, 0.09);
+}
+
+html,
+body {
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 8% -8%, rgba(216, 92, 61, 0.035), transparent 28rem),
+    linear-gradient(180deg, #faf9f7 0, var(--canvas) 24rem);
+}
+
+::selection {
+  background: #f6d6cd;
+  color: var(--ink-strong);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible,
+tr:focus-visible,
+.transaction-mobile-card:focus-visible {
+  outline-color: rgba(216, 92, 61, 0.35);
+}
+
+/* Product chrome */
+.topbar,
+.workspace-topbar {
+  border-color: var(--line);
+  background: color-mix(in srgb, #ffffff 88%, transparent);
+  box-shadow: 0 1px 0 rgba(15, 15, 18, 0.025);
+  backdrop-filter: blur(20px) saturate(130%);
+}
+
+.brand-mark {
+  border: 1px solid rgba(216, 92, 61, 0.16);
+  background: linear-gradient(145deg, #e86a49, #cb4b30);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(185, 67, 40, 0.14);
+}
+
+.brand-copy small,
+.workspace-breadcrumb {
+  color: var(--muted-2);
+}
+
+.topbar nav,
+.mobile-dock,
+.rail-nav {
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.topbar nav a,
+.rail-nav a {
+  color: #75777f;
+}
+
+.topbar nav a:hover,
+.rail-nav a:hover {
+  color: var(--ink-strong);
+}
+
+.topbar nav a.active,
+.rail-nav a.active {
+  background: #17181b;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(17, 18, 20, 0.10);
+}
+
+.header-balance,
+.mobile-balance,
+.coin-balance {
+  color: #6c4b0f;
+}
+
+.coin-mark,
+.reward-cost i {
+  color: var(--gold);
+}
+
+.live-pill,
+.live-dot {
+  background: rgba(255, 255, 255, 0.72);
+  color: #65676e;
+  border-color: var(--line);
+}
+
+.live-pill i,
+.live-dot i,
+.status--success i {
+  background: #16877a;
+}
+
+/* Summary / dashboard cards */
+.spend-overview-card,
+.metric-card--primary {
+  border-color: rgba(255, 255, 255, 0.06);
+  background:
+    radial-gradient(circle at 88% 5%, rgba(216, 92, 61, 0.20), transparent 34%),
+    linear-gradient(145deg, #17181b, #0d0e10 72%);
+  color: #fff;
+  box-shadow: 0 26px 72px rgba(15, 15, 18, 0.14);
+}
+
+.spend-overview-card .overline,
+.spend-overview-card p,
+.spend-overview-card__meta,
+.metric-card--primary p,
+.metric-card--primary .metric-card__top {
+  color: #a7a8ad;
+}
+
+.period-chip {
+  border-color: rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+  color: #c7c8cc;
+}
+
+.summary-card,
+.metric-card,
+.chart-panel,
+.ledger-surface,
+.rewards-grid .reward-card,
+.modal,
+.table-shell {
+  border-color: var(--line);
+  background: rgba(255,255,255,.96);
+  box-shadow: var(--shadow-sm);
+}
+
+.summary-card--reward,
+.reward-card--featured {
+  background: linear-gradient(180deg, #fffdf8, #fffaf0) !important;
+  border-color: rgba(182, 129, 34, 0.18) !important;
+}
+
+.glow-border {
+  --glow-core: rgba(182, 129, 34, 0.55);
+  background:
+    linear-gradient(#fffdf8, #fffdf8) padding-box,
+    conic-gradient(from var(--glow-angle), transparent 0 76%, rgba(182,129,34,.48) 84%, rgba(216,92,61,.34) 89%, transparent 97%) border-box !important;
+}
+
+.eyebrow,
+.panel-kicker,
+.overline,
+.field > span,
+.section-index {
+  color: var(--accent-strong);
+}
+
+.section-heading h2,
+.panel-heading h3,
+.transactions-section h2,
+.rewards-section h2 {
+  color: var(--ink-strong);
+}
+
+/* Analytics */
+.analytics-grid {
+  gap: clamp(.8rem, 1.1vw, 1.15rem);
+}
+
+.chart-panel {
+  overflow: hidden;
+}
+
+.chart-reset {
+  border-color: rgba(216, 92, 61, .18);
+  background: var(--accent-pale);
+  color: var(--accent-strong);
+}
+
+.category-ranking button {
+  border-color: transparent;
+  background: transparent;
+}
+
+.category-ranking button:hover {
+  background: #faf8f5;
+}
+
+.category-ranking button.active {
+  border-color: rgba(216, 92, 61, .16);
+  background: var(--accent-pale);
+}
+
+.category-ranking__bar {
+  background: #eceae6;
+}
+
+.trend-insights > div {
+  border-color: var(--line);
+  background: #faf9f7;
+}
+
+.trend-up { color: #b4472d; }
+.trend-down { color: #167f70; }
+
+/* Transaction filter bar — explicit sizing fixes the giant search SVG issue. */
+.transactions-section,
+.ledger-surface,
+.table-shell {
+  container-type: inline-size;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(18rem, 1fr) minmax(9.5rem, .22fr) minmax(9.5rem, .22fr) auto auto;
+  align-items: end;
+  gap: .7rem;
+  padding: clamp(.8rem, 1.1vw, 1rem);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.field {
+  min-inline-size: 0;
+}
+
+.field > span {
+  display: block;
+  margin: 0 0 .42rem;
+  font-size: .61rem;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  inline-size: 100%;
+  block-size: 2.85rem;
+}
+
+.search-input-wrap svg {
+  position: absolute;
+  z-index: 2;
+  inset-inline-start: .9rem;
+  inline-size: .95rem;
+  block-size: .95rem;
+  max-inline-size: .95rem;
+  max-block-size: .95rem;
+  fill: none !important;
+  stroke: #898b91 !important;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.search-input-wrap input,
+.field select,
+.more-filters summary,
+.more-filters__panel input {
+  block-size: 2.85rem;
+  border: 1px solid #deddd9;
+  border-radius: .72rem;
+  background: #fbfaf8;
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.search-input-wrap input {
+  inline-size: 100%;
+  padding: 0 .9rem 0 2.55rem;
+}
+
+.search-input-wrap input::placeholder {
+  color: #a0a1a6;
+}
+
+.search-input-wrap input:hover,
+.field select:hover,
+.more-filters summary:hover {
+  border-color: #c9c7c2;
+  background: #fff;
+}
+
+.search-input-wrap input:focus,
+.field select:focus,
+.more-filters__panel input:focus {
+  border-color: rgba(216, 92, 61, .48);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(216, 92, 61, .09);
+  outline: none;
+}
+
+.more-filters summary {
+  min-inline-size: 5.25rem;
+  padding-inline: .82rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  color: #52545b;
+  list-style: none;
+  cursor: pointer;
+}
+
+.more-filters summary::-webkit-details-marker { display: none; }
+.more-filters summary svg {
+  inline-size: .9rem;
+  block-size: .9rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.filters__clear {
+  align-self: end;
+  block-size: 2.85rem;
+  color: var(--accent-strong);
+}
+
+/* Desktop table and mobile-list are mutually exclusive. */
+.transactions-mobile-list {
+  display: none;
+}
+
+.table-scroll {
+  display: block;
+  inline-size: 100%;
+  overflow: auto;
+}
+
+.transactions-table {
+  inline-size: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+}
+
+.transactions-table thead th {
+  background: #f8f7f4;
+  color: #85878e;
+}
+
+.transactions-table tbody tr:hover {
+  background: #fcf8f5;
+}
+
+.transactions-table tbody tr:focus-visible {
+  background: var(--accent-pale);
+}
+
+.merchant-mark {
+  background: #f4eae6;
+  color: var(--accent-strong);
+}
+
+.category-pill {
+  background: #f2f1ee;
+  color: #65676d;
+}
+
+.status--success { color: #167f70; }
+.status--danger { color: #c4485a; }
+.status--neutral { color: #7b7e86; }
+
+.pagination .button,
+.table-footer .button {
+  border-color: #deddd9;
+  background: #fff;
+  color: var(--ink);
+}
+
+/* Rewards */
+.reward-glyph {
+  background: #17181b;
+  color: #fff;
+}
+
+.reward-cost {
+  background: var(--gold-soft);
+  color: #765114;
+}
+
+.button--primary,
+.reward-card .button--primary {
+  border-color: #17181b;
+  background: #17181b;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(17,18,20,.10);
+}
+
+.button--primary:hover,
+.reward-card .button--primary:hover {
+  background: #2a2b2f;
+}
+
+.toast {
+  border-color: rgba(22,127,112,.16);
+  background: #f0f8f6;
+  color: #12665b;
+}
+
+/* Breakpoint-free component behaviour where possible. */
+@container (max-width: 58rem) {
+  .filters {
+    grid-template-columns: minmax(0, 1fr) minmax(9rem, .45fr) minmax(9rem, .45fr) auto;
+  }
+  .filters__clear { grid-column: 1 / -1; justify-self: start; block-size: auto; }
+}
+
+@container (max-width: 46rem) {
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .field--search { grid-column: 1 / -1; }
+  .more-filters { align-self: end; }
+
+  .table-scroll { display: none; }
+  .transactions-mobile-list {
+    display: grid;
+    gap: .62rem;
+    padding: .75rem;
+    background: #f8f7f4;
+  }
+  .transaction-mobile-card {
+    inline-size: 100%;
+    padding: .9rem;
+    border: 1px solid var(--line);
+    border-radius: .85rem;
+    background: #fff;
+    color: var(--ink);
+    text-align: start;
+    box-shadow: 0 1px 2px rgba(18,18,20,.025);
+  }
+}
+
+@container (max-width: 31rem) {
+  .filters { grid-template-columns: 1fr; }
+  .field--search { grid-column: auto; }
+  .more-filters summary { inline-size: 100%; }
+}
+
+@media (max-width: 760px) {
+  .topbar nav a,
+  .rail-nav a {
+    background: transparent;
+  }
+  .topbar nav a.active,
+  .rail-nav a.active {
+    color: var(--ink-strong);
+    background: #f1efeb;
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-border { animation: none; }
+}
