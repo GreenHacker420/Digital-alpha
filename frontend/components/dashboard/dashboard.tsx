@@ -286,7 +286,6 @@ export function Dashboard() {
 
           <footer className="app-footer">
             <span>ArcPay / Digital Alpha Technologies</span>
-            <span>Built for the Full Stack Engineer take-home</span>
           </footer>
         </div>
       </div>
