@@ -59,11 +59,13 @@ export function Rewards() {
 
   return (
     <section className="rewards-section" id="rewards" aria-labelledby="rewards-title">
-      <div className="section-heading rewards-heading">
+      <div className="section-heading section-heading--compact rewards-heading">
         <div>
-          <p className="eyebrow">Rewards</p>
-          <h2 id="rewards-title">Spend value you already earned.</h2>
-          <p className="section-copy">Redeem directly against the immutable coin ledger. Failed redemptions roll back cleanly.</p>
+          <span className="section-index">03</span>
+          <div>
+            <p className="eyebrow">Rewards</p>
+            <h2 id="rewards-title">Redeem earned value</h2>
+          </div>
         </div>
         <div className="coin-balance">
           <span className="coin-mark" aria-hidden="true">◆</span>
@@ -75,6 +77,10 @@ export function Rewards() {
           </div>
         </div>
       </div>
+
+      <p className="rewards-intro">
+        Select a reward, review the balance impact, and confirm. Failed redemptions restore the optimistic balance automatically.
+      </p>
 
       {rewardsQuery.isError ? (
         <div className="rewards-error" role="alert">
