@@ -69,16 +69,12 @@ export function Dashboard() {
       const atPageBottom =
         window.scrollY + window.innerHeight >= documentElement.scrollHeight - 8;
 
-      // The final section cannot always travel far enough up the viewport to
-      // cross a conventional scroll-spy threshold. At the document end the
-      // user's intent is unambiguously the Rewards section.
+
       if (atPageBottom) {
         setActiveSection("rewards");
         return;
       }
 
-      // A fluid viewport anchor makes the active state feel natural across
-      // desktop and mobile instead of depending on one fixed pixel offset.
       const activationLine = window.innerHeight * 0.4;
       let nextSection: SectionId = "overview";
 

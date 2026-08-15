@@ -4,7 +4,6 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  Cell,
   Pie,
   PieChart,
   ReferenceLine,
@@ -79,6 +78,7 @@ export function Analytics({
     ...item,
     amount: Number(item.amount),
     fill: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+    fillOpacity: activeCategory && activeCategory !== item.category ? 0.24 : 1,
     percent: totalSpend > 0 ? (Number(item.amount) / totalSpend) * 100 : 0,
   }));
 
@@ -139,15 +139,7 @@ export function Analytics({
                       );
                       if (category) onCategory(category);
                     }}
-                  >
-                    {categories.map((item) => (
-                      <Cell
-                        key={item.category}
-                        fill={item.fill}
-                        opacity={activeCategory && activeCategory !== item.category ? 0.24 : 1}
-                      />
-                    ))}
-                  </Pie>
+                  />
                   <Tooltip
                     contentStyle={tooltipStyle}
                     formatter={(value) => formatMoney(Number(value))}

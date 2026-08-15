@@ -2,11 +2,7 @@
 
 import type { CSSProperties, HTMLAttributes, PointerEvent } from "react";
 
-/**
- * Pointer-tracked spotlight surface inspired by the lightweight interaction
- * pattern used by React Bits / Aceternity card components. The implementation
- * stays dependency-free so the dashboard keeps a small client bundle.
- */
+
 export function SpotlightCard({
   className = "",
   style,
