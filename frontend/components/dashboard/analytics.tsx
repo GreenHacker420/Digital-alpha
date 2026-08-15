@@ -17,30 +17,30 @@ import type { SpendAnalytics } from "@/lib/types";
 import { formatCompactMoney, formatMoney } from "@/lib/format";
 
 const CATEGORY_COLORS = [
-  "#5B5CE2",
-  "#3E91E8",
-  "#8B74E8",
-  "#E58A63",
-  "#D9657C",
-  "#E3AA43",
-  "#58A7A1",
-  "#79839B",
-  "#B06AB3",
-  "#7D9E68",
-  "#A87D62",
+  "#D85C3D",
+  "#25272C",
+  "#B58A3D",
+  "#7D6F63",
+  "#B25265",
+  "#567A7E",
+  "#92705A",
+  "#77708C",
+  "#C68167",
+  "#69737E",
+  "#B5A06C",
 ];
 
 const tooltipStyle = {
-  border: "1px solid rgba(31, 36, 58, 0.1)",
-  borderRadius: "14px",
-  boxShadow: "0 18px 50px rgba(26, 31, 54, 0.14)",
-  background: "rgba(255,255,255,.98)",
-  color: "#181b2c",
+  border: "1px solid rgba(20, 20, 22, 0.1)",
+  borderRadius: "12px",
+  boxShadow: "0 18px 48px rgba(18, 18, 20, 0.12)",
+  background: "rgba(255,255,255,.985)",
+  color: "#1A1B1E",
   fontSize: "12px",
 };
 
 function compactAxis(value: number) {
-  return formatCompactMoney(value).replace("₹", "₹");
+  return formatCompactMoney(value);
 }
 
 export function Analytics({
@@ -144,7 +144,7 @@ export function Analytics({
                       <Cell
                         key={item.category}
                         fill={item.fill}
-                        opacity={activeCategory && activeCategory !== item.category ? 0.26 : 1}
+                        opacity={activeCategory && activeCategory !== item.category ? 0.24 : 1}
                       />
                     ))}
                   </Pie>
@@ -222,46 +222,46 @@ export function Analytics({
             <AreaChart data={monthly} margin={{ top: 18, right: 8, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#5B5CE2" stopOpacity={0.24} />
-                  <stop offset="72%" stopColor="#5B5CE2" stopOpacity={0.04} />
-                  <stop offset="100%" stopColor="#5B5CE2" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#D85C3D" stopOpacity={0.20} />
+                  <stop offset="70%" stopColor="#D85C3D" stopOpacity={0.035} />
+                  <stop offset="100%" stopColor="#D85C3D" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid vertical={false} stroke="rgba(58, 64, 92, .09)" strokeDasharray="4 6" />
+              <CartesianGrid vertical={false} stroke="rgba(20, 20, 22, .075)" strokeDasharray="4 6" />
               <XAxis
                 dataKey="label"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "#777d92", fontSize: 11 }}
+                tick={{ fill: "#777980", fontSize: 11 }}
                 minTickGap={22}
                 tickMargin={12}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "#8b90a2", fontSize: 10 }}
+                tick={{ fill: "#8d8f95", fontSize: 10 }}
                 width={56}
                 tickFormatter={(value) => compactAxis(Number(value))}
               />
               <ReferenceLine
                 y={averageMonthly}
-                stroke="#C7A44E"
+                stroke="#B68122"
                 strokeDasharray="5 5"
-                strokeOpacity={0.75}
+                strokeOpacity={0.72}
               />
               <Tooltip
-                cursor={{ stroke: "rgba(91,92,226,.28)", strokeDasharray: "4 4" }}
+                cursor={{ stroke: "rgba(216,92,61,.26)", strokeDasharray: "4 4" }}
                 contentStyle={tooltipStyle}
-                labelStyle={{ color: "#666c80", marginBottom: "4px" }}
+                labelStyle={{ color: "#6e7077", marginBottom: "4px" }}
                 formatter={(value) => formatMoney(Number(value))}
               />
               <Area
                 type="monotone"
                 dataKey="amount"
-                stroke="#5B5CE2"
-                strokeWidth={2.5}
+                stroke="#D85C3D"
+                strokeWidth={2.4}
                 fill="url(#spendGradient)"
-                activeDot={{ r: 4.5, fill: "#5B5CE2", stroke: "#ffffff", strokeWidth: 3 }}
+                activeDot={{ r: 4.5, fill: "#D85C3D", stroke: "#ffffff", strokeWidth: 3 }}
               />
             </AreaChart>
           </ResponsiveContainer>
