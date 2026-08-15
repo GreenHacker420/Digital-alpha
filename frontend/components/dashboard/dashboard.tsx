@@ -9,7 +9,6 @@ import { queryKeys } from "@/lib/query-keys";
 import type { Filters, Transaction } from "@/lib/types";
 import { formatCompactMoney } from "@/lib/format";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { GlowBorder } from "@/components/ui/glow-border";
 import { FilterBar } from "./filter-bar";
 import { Rewards } from "./rewards";
 import { TransactionModal } from "./transaction-modal";
@@ -28,49 +27,24 @@ const Analytics = dynamic(
   },
 );
 
-function OverviewIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" />
-    </svg>
-  );
-}
+type SectionId = "overview" | "transactions" | "rewards";
 
-function TransactionsIcon() {
+function ProductNav({ activeSection }: { activeSection: SectionId }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M5 7h14M5 12h14M5 17h9" />
-      <path d="M3.5 7h.01M3.5 12h.01M3.5 17h.01" />
-    </svg>
-  );
-}
-
-function RewardsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 21s7-3.6 7-10V5l-7-2-7 2v6c0 6.4 7 10 7 10Z" />
-      <path d="m9.4 11.4 1.7 1.7 3.7-4" />
-    </svg>
-  );
-}
-
-function RailNav({ activeSection }: { activeSection: "overview" | "transactions" | "rewards" }) {
-  return (
-    <nav className="rail-nav" aria-label="Primary navigation">
-      <a className={activeSection === "overview" ? "active" : ""} href="#overview">
-        <OverviewIcon />
-        <span>Overview</span>
-      </a>
-      <a className={activeSection === "transactions" ? "active" : ""} href="#transactions">
-        <TransactionsIcon />
-        <span>Transactions</span>
-      </a>
-      <a className={activeSection === "rewards" ? "active" : ""} href="#rewards">
-        <RewardsIcon />
-        <span>Rewards</span>
-      </a>
+    <nav className="product-nav" aria-label="Primary navigation">
+      <a className={activeSection === "overview" ? "active" : ""} href="#overview">Overview</a>
+      <a className={activeSection === "transactions" ? "active" : ""} href="#transactions">Transactions</a>
+      <a className={activeSection === "rewards" ? "active" : ""} href="#rewards">Rewards</a>
     </nav>
   );
+}
+
+function formatMonth(month?: string) {
+  if (!month) return "—";
+  return new Date(`${month}-01T00:00:00`).toLocaleDateString("en-IN", {
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export function Dashboard() {
@@ -78,12 +52,12 @@ export function Dashboard() {
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState(DEFAULT_SORT);
   const [selected, setSelected] = useState<Transaction | null>(null);
-  const [activeSection, setActiveSection] = useState<"overview" | "transactions" | "rewards">("overview");
+  const [activeSection, setActiveSection] = useState<SectionId>("overview");
   const debouncedSearch = useDebouncedValue(filters.q, 250);
   const queryFilters: Filters = { ...filters, q: debouncedSearch };
 
   useEffect(() => {
-    const sections = ["overview", "transactions", "rewards"]
+    const sections = (["overview", "transactions", "rewards"] as const)
       .map((id) => document.getElementById(id))
       .filter((section): section is HTMLElement => Boolean(section));
 
@@ -92,11 +66,11 @@ export function Dashboard() {
         const visible = entries
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible?.target.id === "overview" || visible?.target.id === "transactions" || visible?.target.id === "rewards") {
-          setActiveSection(visible.target.id);
+        if (visible && ["overview", "transactions", "rewards"].includes(visible.target.id)) {
+          setActiveSection(visible.target.id as SectionId);
         }
       },
-      { rootMargin: "-18% 0px -62% 0px", threshold: [0, 0.1, 0.3] },
+      { rootMargin: "-16% 0px -68% 0px", threshold: [0, 0.12, 0.3] },
     );
 
     sections.forEach((section) => observer.observe(section));
@@ -137,161 +111,158 @@ export function Dashboard() {
   const visibleBalance = balance.isError
     ? "—"
     : (balance.data?.balance ?? 0).toLocaleString("en-IN");
-
   const matchingTransactions = transactions.data?.total.toLocaleString("en-IN") ?? "—";
   const successfulTransactions = analytics.data?.successful_transactions.toLocaleString("en-IN") ?? "—";
-  const categoryCount = analytics.data?.categories.length.toLocaleString("en-IN") ?? "—";
+  const months = analytics.data?.monthly ?? [];
+  const period = months.length
+    ? `${formatMonth(months[0]?.month)} — ${formatMonth(months.at(-1)?.month)}`
+    : "Full dataset";
 
   return (
     <main className="app-shell">
-      <aside className="app-rail">
-        <a className="rail-brand" href="#overview" aria-label="ArcPay home">
+      <header className="app-header">
+        <a className="brand" href="#overview" aria-label="ArcPay home">
           <span className="brand-mark">A</span>
-          <span>
+          <span className="brand-copy">
             <strong>ArcPay</strong>
-            <small>Personal finance</small>
+            <small>Cards & rewards</small>
           </span>
         </a>
 
-        <RailNav activeSection={activeSection} />
+        <ProductNav activeSection={activeSection} />
 
-        <div className="rail-status">
-          <div className="rail-status__pulse"><i /> Connected</div>
-          <p>10k-row PostgreSQL ledger with live server filtering.</p>
-        </div>
-
-        <a className="rail-balance" href="#rewards">
-          <span className="coin-mark" aria-hidden="true">◆</span>
-          <div>
-            <small>Reward balance</small>
+        <a
+          className="header-balance"
+          href="#rewards"
+          aria-label={balance.isError ? "Reward balance unavailable" : `${balance.data?.balance ?? 0} reward coins`}
+        >
+          <span className="coin-gem" aria-hidden="true">◆</span>
+          <span>
+            <small>Coin balance</small>
             <strong>{visibleBalance}</strong>
-          </div>
-          <span aria-hidden="true">→</span>
+          </span>
         </a>
-      </aside>
+      </header>
 
-      <div className="workspace">
-        <header className="workspace-topbar">
-          <div>
-            <span className="workspace-breadcrumb">Workspace / {activeSection[0].toUpperCase() + activeSection.slice(1)}</span>
-            <h1>Spending overview</h1>
+      <div className="dashboard">
+        <section className="overview-section" id="overview" aria-labelledby="overview-title">
+          <div className="page-intro">
+            <div>
+              <p className="eyebrow">Credit-card spending</p>
+              <h1 id="overview-title">Your money, in one clear view.</h1>
+              <p>Search every payment, understand your spending mix, and redeem the coins your successful payments earned.</p>
+            </div>
+            <span className="sync-pill"><i /> {matchingTransactions} transactions in view</span>
           </div>
-          <div className="workspace-actions">
-            <span className="live-pill"><i /> Live data</span>
-            <a className="mobile-balance" href="#rewards">
-              <span className="coin-mark" aria-hidden="true">◆</span>
-              <strong>{visibleBalance}</strong>
-            </a>
-          </div>
-        </header>
 
-        <div className="workspace-content">
-          <section className="overview-section" id="overview" aria-label="Account summary">
-            <article className="spend-overview-card">
-              <div className="ambient-grid" aria-hidden="true" />
-              <div className="spend-overview-card__head">
-                <div>
-                  <span className="overline">Total eligible spend</span>
-                  <strong>{analytics.data ? formatCompactMoney(analytics.data.total_spend) : "—"}</strong>
-                </div>
-                <span className="period-chip">Jul 2025 — Jul 2026</span>
+          <div className="overview-grid" aria-label="Spending summary">
+            <article className="primary-metric-card">
+              <div className="primary-metric-card__top">
+                <span>Total eligible spend</span>
+                <span>{period}</span>
               </div>
-              <p>Successful, positive, non-anomalous card payments in the current filter context.</p>
-              <div className="spend-overview-card__meta">
+              <strong>{analytics.data ? formatCompactMoney(analytics.data.total_spend) : "—"}</strong>
+              <p>Successful positive card payments included in your current filters.</p>
+              <div className="metric-foot">
                 <span><b>{successfulTransactions}</b> successful</span>
-                <span><b>{matchingTransactions}</b> matching records</span>
-                <span><b>{categoryCount}</b> spend categories</span>
+                <span><b>{matchingTransactions}</b> matching</span>
               </div>
             </article>
 
-            <article className="summary-card">
-              <div className="summary-card__icon"><TransactionsIcon /></div>
-              <span>Matching transactions</span>
-              <strong>{matchingTransactions}</strong>
-              <p>Server-filtered and paginated, never 10,000 DOM rows at once.</p>
-              <a href="#transactions">Open ledger <span aria-hidden="true">↘</span></a>
-            </article>
-
-            <GlowBorder className="summary-card summary-card--reward">
-              <div className="summary-card__icon summary-card__icon--coin">◆</div>
-              <span>Available rewards</span>
-              <strong>{visibleBalance}</strong>
-              <p>Ledger-derived coins, ready for an atomic redemption.</p>
-              <a href="#rewards">View rewards <span aria-hidden="true">↘</span></a>
-            </GlowBorder>
-          </section>
-
-          <section className="analytics-section" aria-labelledby="analytics-title">
-            <div className="section-heading section-heading--compact">
+            <article className="metric-card">
+              <span className="metric-icon metric-icon--indigo" aria-hidden="true">↕</span>
               <div>
-                <span className="section-index">01</span>
-                <div>
-                  <p className="eyebrow">Insights</p>
-                  <h2 id="analytics-title">Where the money moves</h2>
-                </div>
+                <span>Transactions</span>
+                <strong>{matchingTransactions}</strong>
+                <p>Filtered, searched and sorted on the server.</p>
               </div>
-              <p>Interactive category mix and monthly spend movement. Selecting a category updates the ledger below.</p>
-            </div>
+            </article>
 
-            <Analytics
-              data={analytics.data}
-              loading={analytics.isPending}
-              error={analytics.isError}
-              activeCategory={filters.category}
-              onCategory={(category) =>
-                updateFilters({
-                  ...filters,
-                  category: filters.category === category ? "" : category,
-                })
-              }
+            <article className="metric-card">
+              <span className="metric-icon metric-icon--blue" aria-hidden="true">✓</span>
+              <div>
+                <span>Successful payments</span>
+                <strong>{successfulTransactions}</strong>
+                <p>Payments eligible for spend analytics.</p>
+              </div>
+            </article>
+
+            <article className="metric-card metric-card--coins">
+              <span className="metric-icon metric-icon--gold" aria-hidden="true">◆</span>
+              <div>
+                <span>Reward coins</span>
+                <strong>{visibleBalance}</strong>
+                <p>Available to redeem from the rewards catalogue.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section className="analytics-section" aria-labelledby="analytics-title">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Spend analytics</p>
+              <h2 id="analytics-title">See where it went, and when.</h2>
+            </div>
+            <p>Both charts use the same live filter context as your transaction table. Select a category to drill into its payments.</p>
+          </div>
+
+          <Analytics
+            data={analytics.data}
+            loading={analytics.isPending}
+            error={analytics.isError}
+            activeCategory={filters.category}
+            onCategory={(category) =>
+              updateFilters({
+                ...filters,
+                category: filters.category === category ? "" : category,
+              })
+            }
+          />
+        </section>
+
+        <section className="transactions-section" id="transactions" aria-busy={transactions.isFetching}>
+          <div className="section-heading section-heading--transactions">
+            <div>
+              <p className="eyebrow">Transactions</p>
+              <h2>Every payment, easy to inspect.</h2>
+            </div>
+            <span className="live-dot"><i /> Live data</span>
+          </div>
+
+          <div className="transaction-surface">
+            <FilterBar
+              filters={filters}
+              meta={meta.data}
+              onChange={updateFilters}
+              onClear={() => updateFilters(EMPTY_FILTERS)}
             />
-          </section>
+            <TransactionsTable
+              data={transactions.data}
+              loading={transactions.isPending}
+              fetching={transactions.isFetching}
+              error={transactions.isError}
+              sort={sort}
+              onSort={(next) => {
+                setSort(next);
+                setPage(1);
+              }}
+              onSelect={setSelected}
+              onPage={setPage}
+            />
+          </div>
+        </section>
 
-          <section className="transactions-section" id="transactions" aria-busy={transactions.isFetching}>
-            <div className="section-heading section-heading--compact">
-              <div>
-                <span className="section-index">02</span>
-                <div>
-                  <p className="eyebrow">Ledger</p>
-                  <h2>Transactions</h2>
-                </div>
-              </div>
-              <span className="section-meta">{matchingTransactions} matching</span>
-            </div>
+        <Rewards />
 
-            <div className="ledger-surface">
-              <FilterBar
-                filters={filters}
-                meta={meta.data}
-                onChange={updateFilters}
-                onClear={() => updateFilters(EMPTY_FILTERS)}
-              />
-              <TransactionsTable
-                data={transactions.data}
-                loading={transactions.isPending}
-                fetching={transactions.isFetching}
-                error={transactions.isError}
-                sort={sort}
-                onSort={(next) => {
-                  setSort(next);
-                  setPage(1);
-                }}
-                onSelect={setSelected}
-                onPage={setPage}
-              />
-            </div>
-          </section>
-
-          <Rewards />
-
-          <footer className="app-footer">
-            <span>ArcPay / Digital Alpha Technologies</span>
-          </footer>
-        </div>
+        <footer className="app-footer">
+          <span>ArcPay</span>
+          <span>Digital Alpha Technologies · Take-home assignment</span>
+        </footer>
       </div>
 
-      <div className="mobile-dock">
-        <RailNav activeSection={activeSection} />
+      <div className="mobile-nav-shell">
+        <ProductNav activeSection={activeSection} />
       </div>
 
       <TransactionModal transaction={selected} onClose={() => setSelected(null)} />
