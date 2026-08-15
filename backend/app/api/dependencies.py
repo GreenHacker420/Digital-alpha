@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from fastapi import HTTPException, Query, status
+from fastapi import HTTPException, Query
 
 from app.config import settings
 from app.query import TransactionFilterSet

@@ -14,7 +14,12 @@ from app.api.dependencies import (
 )
 from app.database import get_db
 from app.query import TransactionFilterSet
-from app.repositories.transactions import get_meta, get_transaction, list_transactions, spend_analytics
+from app.repositories.transactions import (
+    get_meta,
+    get_transaction,
+    list_transactions,
+    spend_analytics,
+)
 from app.schemas import SpendAnalytics, TransactionMeta, TransactionOut, TransactionsPage
 
 router = APIRouter(tags=["transactions"])

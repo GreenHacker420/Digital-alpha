@@ -1,19 +1,24 @@
 .PHONY: db seed api test lint backend-check web-install web web-check check
 
+PYTHON := $(if $(wildcard backend/.venv/bin/python),.venv/bin/python,python)
+UVICORN := $(if $(wildcard backend/.venv/bin/uvicorn),.venv/bin/uvicorn,uvicorn)
+PYTEST := $(if $(wildcard backend/.venv/bin/pytest),.venv/bin/pytest,pytest)
+RUFF := $(if $(wildcard backend/.venv/bin/ruff),.venv/bin/ruff,ruff)
+
 db:
 	docker compose up -d db
 
 seed:
-	cd backend && python -m scripts.seed ../transactions.json
+	cd backend && $(PYTHON) -m scripts.seed ../transactions.json
 
 api:
-	cd backend && uvicorn app.main:app --reload --port 8000
+	cd backend && $(UVICORN) app.main:app --reload --port 8000
 
 test:
-	cd backend && pytest -q
+	cd backend && $(PYTEST) -q
 
 lint:
-	cd backend && ruff check .
+	cd backend && $(RUFF) check .
 
 backend-check: lint test
 

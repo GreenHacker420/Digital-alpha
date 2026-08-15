@@ -4,7 +4,7 @@ import sys
 import uuid
 from collections import Counter
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation, ROUND_FLOOR
+from decimal import ROUND_FLOOR, Decimal, InvalidOperation
 from pathlib import Path
 
 from sqlalchemy import create_engine, text
