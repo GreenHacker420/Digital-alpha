@@ -3,7 +3,8 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from fastapi import HTTPException, Query, status as http_status
+from fastapi import HTTPException, Query
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
 from app.config import settings
 from app.query import TransactionFilterSet
@@ -24,12 +25,12 @@ def get_transaction_filters(
 ) -> TransactionFilterSet:
     if amount_min is not None and amount_max is not None and amount_min > amount_max:
         raise HTTPException(
-            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=HTTP_422_UNPROCESSABLE_ENTITY,
             detail="amount_min must be less than or equal to amount_max",
         )
     if date_from is not None and date_to is not None and date_from > date_to:
         raise HTTPException(
-            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=HTTP_422_UNPROCESSABLE_ENTITY,
             detail="date_from must be earlier than or equal to date_to",
         )
 
