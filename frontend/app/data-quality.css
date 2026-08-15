@@ -1,9 +1,9 @@
 .table-scroll {
-  max-block-size: 68svh;
+  max-block-size: min(68svh, 44rem);
 }
 
 .amount-cell--credit strong {
-  color: var(--forest);
+  color: var(--teal);
 }
 
 .data-warning {
@@ -14,7 +14,7 @@
   place-items: center;
   border-radius: 50%;
   background: var(--gold-soft);
-  color: #805a1c;
+  color: var(--gold-strong);
   cursor: help;
   font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
   font-size: 0.58rem;
@@ -27,9 +27,9 @@
   padding: 0.85rem 0.95rem;
   display: grid;
   gap: 0.3rem;
-  border: 1px solid rgba(189, 135, 50, 0.23);
+  border: 1px solid rgba(217, 162, 61, 0.24);
   border-radius: var(--radius-sm);
-  background: #fff9ec;
+  background: var(--gold-soft);
   color: #76531b;
   font-size: 0.74rem;
   line-height: 1.55;
@@ -40,32 +40,11 @@
 }
 
 .data-note--credit {
-  border-color: rgba(40, 108, 82, 0.2);
-  background: var(--forest-pale);
-  color: var(--forest);
+  border-color: rgba(47, 156, 144, 0.2);
+  background: var(--teal-soft);
+  color: #257f76;
 }
 
 .data-note--credit strong {
-  color: var(--forest-strong);
-}
-
-.analytics-error,
-.rewards-error {
-  min-block-size: clamp(10rem, 25svh, 16rem);
-  padding: clamp(1.25rem, 3vw, 2.5rem);
-  display: grid;
-  place-content: center;
-  gap: 0.4rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  color: var(--muted);
-  text-align: center;
-  font-size: 0.78rem;
-}
-
-.analytics-error strong,
-.rewards-error strong {
-  color: var(--rose);
-  font-size: 0.95rem;
+  color: #1d6b63;
 }
