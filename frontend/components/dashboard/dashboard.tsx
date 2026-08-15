@@ -9,6 +9,7 @@ import { queryKeys } from "@/lib/query-keys";
 import type { Filters, Transaction } from "@/lib/types";
 import { formatCompactMoney } from "@/lib/format";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { FilterBar } from "./filter-bar";
 import { Rewards } from "./rewards";
 import { TransactionModal } from "./transaction-modal";
@@ -73,71 +74,118 @@ export function Dashboard() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#top" aria-label="ArcPay home">
-          <span className="brand-mark">A</span>
-          <strong>ArcPay</strong>
-        </a>
-        <nav aria-label="Primary navigation">
-          <a className="active" href="#transactions">Overview</a>
-          <a href="#transactions">Transactions</a>
-          <a href="#rewards">Rewards</a>
-        </nav>
-        <div
-          className="header-balance"
-          aria-label={balance.isError ? "Reward balance unavailable" : `${balance.data?.balance ?? 0} reward coins`}
-        >
-          <span>◆</span>
-          <div>
-            <small>Coin balance</small>
-            <strong>{visibleBalance}</strong>
-          </div>
+        <div className="topbar__inner">
+          <a className="brand" href="#top" aria-label="ArcPay home">
+            <span className="brand-mark">A</span>
+            <span className="brand-copy">
+              <strong>ArcPay</strong>
+              <small>Card intelligence</small>
+            </span>
+          </a>
+
+          <nav aria-label="Primary navigation">
+            <a className="active" href="#top">Overview</a>
+            <a href="#transactions">Transactions</a>
+            <a href="#rewards">Rewards</a>
+          </nav>
+
+          <a
+            className="header-balance"
+            href="#rewards"
+            aria-label={balance.isError ? "Reward balance unavailable" : `${balance.data?.balance ?? 0} reward coins`}
+          >
+            <span className="coin-mark" aria-hidden="true">◆</span>
+            <div>
+              <small>Coins</small>
+              <strong>{visibleBalance}</strong>
+            </div>
+          </a>
         </div>
       </header>
 
       <div className="dashboard" id="top">
-        <section className="hero-row">
-          <div>
-            <p className="eyebrow">Your money, in focus</p>
-            <h1>Spend smarter.<br /><em>Earn on the way.</em></h1>
-            <p>One clear view of card payments, patterns, and the rewards they unlock.</p>
+        <section className="hero-row" aria-labelledby="dashboard-title">
+          <div className="hero-copy">
+            <div className="hero-kicker">
+              <p className="eyebrow">Personal spend intelligence</p>
+              <span className="data-pill">
+                <i aria-hidden="true" />
+                {transactions.data?.total.toLocaleString("en-IN") ?? "10,000"} records synced
+              </span>
+            </div>
+            <h1 id="dashboard-title">
+              Every payment.
+              <br />
+              <em>Finally legible.</em>
+            </h1>
+            <p>
+              Search your card history, understand where the money moved, and redeem the value you earned—without losing the thread.
+            </p>
+            <div className="hero-footnote">
+              <span>PostgreSQL-backed</span>
+              <span>Server-filtered</span>
+              <span>Live rewards ledger</span>
+            </div>
           </div>
-          <div className="hero-stats">
-            <div>
-              <span>Total spend</span>
+
+          <div className="hero-metrics" aria-label="Account summary">
+            <SpotlightCard className="metric-card metric-card--primary">
+              <div className="metric-card__top">
+                <span>Total spend</span>
+                <i aria-hidden="true">↗</i>
+              </div>
               <strong>{analytics.data ? formatCompactMoney(analytics.data.total_spend) : "—"}</strong>
-              <small>successful payments</small>
-            </div>
-            <div>
-              <span>Transactions</span>
-              <strong>{transactions.data?.total.toLocaleString("en-IN") ?? "—"}</strong>
-              <small>matching current filters</small>
-            </div>
-            <div className="hero-stats__accent">
-              <span>Reward balance</span>
+              <p>Successful, positive payments in the current view.</p>
+            </SpotlightCard>
+
+            <SpotlightCard className="metric-card">
+              <div className="metric-card__top">
+                <span>Successful payments</span>
+                <i className="metric-dot metric-dot--success" aria-hidden="true" />
+              </div>
+              <strong>{analytics.data?.successful_transactions.toLocaleString("en-IN") ?? "—"}</strong>
+              <p>Filtered in real time from the transaction ledger.</p>
+            </SpotlightCard>
+
+            <SpotlightCard className="metric-card metric-card--coin">
+              <div className="metric-card__top">
+                <span>Rewards available</span>
+                <i className="metric-dot metric-dot--coin" aria-hidden="true" />
+              </div>
               <strong>{visibleBalance}</strong>
-              <small>coins available</small>
-            </div>
+              <p>Coins ready to redeem from successful card payments.</p>
+            </SpotlightCard>
           </div>
         </section>
 
-        <Analytics
-          data={analytics.data}
-          loading={analytics.isPending}
-          error={analytics.isError}
-          activeCategory={filters.category}
-          onCategory={(category) =>
-            updateFilters({
-              ...filters,
-              category: filters.category === category ? "" : category,
-            })
-          }
-        />
+        <section className="analytics-section" aria-labelledby="analytics-title">
+          <div className="section-heading section-heading--analytics">
+            <div>
+              <p className="eyebrow">Spending</p>
+              <h2 id="analytics-title">Patterns worth seeing.</h2>
+            </div>
+            <p>Category mix and month-by-month movement, calculated in PostgreSQL.</p>
+          </div>
+
+          <Analytics
+            data={analytics.data}
+            loading={analytics.isPending}
+            error={analytics.isError}
+            activeCategory={filters.category}
+            onCategory={(category) =>
+              updateFilters({
+                ...filters,
+                category: filters.category === category ? "" : category,
+              })
+            }
+          />
+        </section>
 
         <section className="transactions-section" id="transactions" aria-busy={transactions.isFetching}>
           <div className="section-heading">
             <div>
               <p className="eyebrow">Transactions</p>
-              <h2>Every payment, easy to inspect.</h2>
+              <h2>Inspect the ledger, not a snapshot.</h2>
             </div>
             <span className="live-dot"><i /> Live data</span>
           </div>
