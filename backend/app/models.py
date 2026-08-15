@@ -39,8 +39,7 @@ class User(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
     __table_args__ = (
-        # The trailing identity key matches the API's deterministic secondary sort,
-        # so date/amount pagination does not need a separate in-memory ordering step.
+
         Index("ix_transactions_user_occurred_id", "user_id", "occurred_at", "id"),
         Index("ix_transactions_user_amount_id", "user_id", "amount", "id"),
         Index(
@@ -69,8 +68,7 @@ class Transaction(Base):
         ),
     )
 
-    # The supplied dataset contains conflicting duplicate transaction IDs, so the
-    # database needs its own identity key while preserving the source identifier.
+
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     source_id: Mapped[str] = mapped_column(String(80), nullable=False)
     user_id: Mapped[uuid.UUID] = mapped_column(

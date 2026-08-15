@@ -13,7 +13,4 @@ class TransactionFilterSet:
     amount_min: Decimal | None = None
     amount_max: Decimal | None = None
 
-
-# The seed normalizes statuses to uppercase. Keeping the query predicate normalized
-# avoids wrapping the indexed status column in LOWER() on every analytics request.
 SUCCESS_STATUSES = ("SUCCESS", "SUCCESSFUL", "COMPLETED", "PAID")
